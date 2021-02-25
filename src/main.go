@@ -1,6 +1,7 @@
 package main
 
 import (
+	"http"
 	"log"
 )
 
@@ -11,6 +12,6 @@ func logInit() {
 func main() {
 	logInit()
 	log.Println("start")
-	resp := HttpGet("http://www.baidu.com")
+	resp := http.HttpGet("http://www.baidu.com")
 	log.Println(len(resp))
 }
