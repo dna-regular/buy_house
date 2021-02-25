@@ -27,10 +27,10 @@ func CrawlRegister(crawl crawler) {
 
 func CrawlRun() []House {
 	var houses []House
-	for _, craw := range crawls {
-		craw.Init()
+	for _, crawl := range crawls {
+		crawl.Init()
 		for {
-			house, done, err := craw.NextHouse()
+			house, done, err := crawl.NextHouse()
 			if err != nil {
 				log.Println(err)
 			}
