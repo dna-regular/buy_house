@@ -25,7 +25,7 @@ func CrawlRegister(crawl crawler) {
 	crawls = append(crawls, crawl)
 }
 
-func CrawlRun() []House {
+func GetHouses() []House {
 	var houses []House
 	for _, crawl := range crawls {
 		crawl.Init()
