@@ -1,6 +1,8 @@
 package crawler
 
-import "log"
+import (
+	"log"
+)
 
 type House struct {
 	url      string
@@ -12,7 +14,8 @@ type House struct {
 
 type crawler interface {
 	Init()
-	NextHouse() (house House, done bool, err error)
+	NextUrl() (url string, done bool, err error)
+	GetHouseInPage(html string) (House, err)
 }
 
 var crawls []crawler
@@ -30,12 +33,18 @@ func GetHouses() []House {
 	for _, crawl := range crawls {
 		crawl.Init()
 		for {
-			house, done, err := crawl.NextHouse()
+			url, done, err := crawl.NextUrl()
 			if err != nil {
 				log.Println(err)
+				continue
 			}
 			if done {
 				break
+			}
+			house, err := crawl.GetHouseInPage(html)
+			if err != nil {
+				log.Println(err)
+				continue
 			}
 			if isHouseValid(house) {
 				houses = append(houses, house)
