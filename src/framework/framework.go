@@ -108,6 +108,7 @@ func handleHTML(results chan Result) (rets []interface{}) {
 			}
 		}
 	}
+	return rets
 }
 
 const maxCh = 100
