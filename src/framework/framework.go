@@ -89,8 +89,9 @@ func handleHTML(results chan Result) (rets []interface{}) {
 		}
 		module := result.module.(Module)
 		htmlType := module.GetHtmlType()
+		var ret interface{}
 		if htmlType == "json" {
-
+			ret = result.module.(JSONModule).OnGetHtml(string(result.body))
 		}
 		if htmlType == "html" {
 			doc, err := goquery.NewDocumentFromReader(result.body)
@@ -98,14 +99,14 @@ func handleHTML(results chan Result) (rets []interface{}) {
 				log.Fatal(err)
 				continue
 			}
-			ret, err := result.module.(HTMLModule).OnPageParsed(doc)
+			ret, err = result.module.(HTMLModule).OnPageParsed(doc)
 			if err != nil {
 				log.Println(err)
 				continue
 			}
-			if module.IsValid(ret) {
-				rets = append(rets, ret)
-			}
+		}
+		if module.IsValid(ret) {
+			rets = append(rets, ret)
 		}
 	}
 	return rets
