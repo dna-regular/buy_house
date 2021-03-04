@@ -1,19 +1,27 @@
 package proxy
 
-import "src/src/framework"
+import (
+	"src/src/framework"
+)
 
-var modules []framework.Module
-
-func init() {
-	proxy := NewRawProxy()
-	framework.ModuleRegister(modules, proxy)
+type ProxyInfo struct {
+	Host      string `json:"host"`
+	Port      int    `json:"port"`
+	Type      string `json:"type"`
+	Anonymity string `json:"anonymity"`
 }
 
-// GetProxies: get proxy list
-func GetProxies() []string {
-	rets := framework.Run(modules)
-	for ret := range rets {
+var proxies []ProxyInfo
 
+func init() {
+	rawProxy := NewRawProxy()
+	modules := []framework.Module{rawProxy}
+	rets := framework.Run(modules)
+	for _, ret := range rets {
+		proxy := ret.(ProxyInfo)
+		if proxy.Anonymity == "high_anonymous" {
+			proxies = append(proxies, proxy)
+		}
 	}
 }
 
@@ -26,9 +34,7 @@ func NewRawProxy() *RawProxy {
 	return proxy
 }
 
-func (proxy *RawProxy) Init() {
-
-}
+func (proxy *RawProxy) Init() {}
 
 func (proxy *RawProxy) NextUrl() (url string, done bool, err error) {
 	return proxy.url, true, nil
