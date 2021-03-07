@@ -78,7 +78,7 @@ func (framework *Framework) fetchHTML(module Module, url string, results chan Re
 	cli := &http.Client{}
 	body := []byte{}
 	req, err := http.NewRequest("GET", url, bytes.NewBuffer(body))
-	//defer wg.Done()
+	defer wg.Done()
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -101,7 +101,6 @@ func (framework *Framework) fetchHTML(module Module, url string, results chan Re
 		return
 	}
 	results <- result
-	wg.Done()
 }
 
 func (framework *Framework) handleResult(result Result) {
