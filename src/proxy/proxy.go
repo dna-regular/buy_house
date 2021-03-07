@@ -1,57 +1,59 @@
 package proxy
 
 import (
+	"errors"
 	"src/src/framework"
+	"time"
 )
 
-type ProxyInfo struct {
-	Host      string `json:"host"`
-	Port      int    `json:"port"`
-	Type      string `json:"type"`
-	Anonymity string `json:"anonymity"`
+type Proxy struct {
+	url       string
+	timestamp int
 }
 
-var proxies []ProxyInfo
-
-func init() {
-	rawProxy := NewRawProxy()
-	modules := []framework.Module{rawProxy}
-	rets := framework.Run(modules)
-	for _, ret := range rets {
-		proxy := ret.(ProxyInfo)
-		if proxy.Anonymity == "high_anonymous" {
-			proxies = append(proxies, proxy)
-		}
-	}
+type ProxyCtx struct {
+	proxies []Proxy
 }
 
-type RawProxy struct {
-	url string
+var modules = []framework.Module{rawProxy}
+
+func (ctx *ProxyCtx) ResultCb(result interface{}) {
+
 }
 
-func NewRawProxy() *RawProxy {
-	proxy := &RawProxy{}
-	return proxy
-}
-
-func (proxy *RawProxy) Init() {}
-
-func (proxy *RawProxy) NextUrl() (url string, done bool, err error) {
-	return proxy.url, true, nil
-}
-
-func (proxy *RawProxy) GetHtmlType() string {
-	return "json"
-}
-
-func (proxy *RawProxy) WithProxy() bool {
-	return false
-}
-
-func (proxy *RawProxy) IsValid(interface{}) bool {
+func (ctx *ProxyCtx) IsResultValid() bool {
 	return true
 }
 
-func (proxy *RawProxy) OnGetHtml(html string) interface{} {
-	return html
+func (ctx *ProxyCtx) Init(config interface{}) {
+	frameworkCtx := framework.NewFramework(ctx)
+	ret := frameworkCtx.Run(modules, config)
+	proxies = append(proxies, ret.([]Proxy)...)
+}
+
+// ProxyWaitTime timeout
+const ProxyWaitTime = 5
+
+func (ctx *ProxyCtx) isProxyAvailable(proxy *Proxy) bool {
+	if proxy.timestamp == 0 {
+		return true
+	}
+	curTimestamp := time.Now().Second()
+	if curTimestamp-proxy.timestamp < ProxyWaitTime {
+		return false
+	}
+	return true
+}
+
+var NoAvailableProxy = errors.New("EOF")
+
+func (ctx *ProxyCtx) Get() (string, error) {
+	for _, proxy := range ctx.proxies {
+		if !ctx.isProxyAvailable(&proxy) {
+			continue
+		}
+		proxy.timestamp = time.Now().Second()
+		return proxy.url, nil
+	}
+	return "", NoAvailableProxy
 }
