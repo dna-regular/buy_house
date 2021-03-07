@@ -20,7 +20,8 @@ func main() {
 		log.Println(err)
 		return
 	}
-	proxy.Init(config)
-	proxy, err := proxy.Get()
+	proxyCtx := proxy.New()
+	proxyCtx.Init(config)
+	proxy, err := proxyCtx.Get()
 	log.Println(proxy)
 }

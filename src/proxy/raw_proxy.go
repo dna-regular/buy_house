@@ -3,6 +3,7 @@ package proxy
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"src/src/conf"
 	"strings"
 
@@ -55,10 +56,11 @@ func (proxy *RawProxy) OnGetHtml(html string) interface{} {
 			continue
 		}
 		if info.Type == "https" {
-			url := info.Type + "://" + info.Host + ":" + string(info.Port)
+			url := info.Type + "://" + info.Host + ":" + fmt.Sprint(info.Port)
 			proxy := Proxy{url: url}
 			proxies = append(proxies, proxy)
 		}
 	}
+	//log.Println(proxies)
 	return proxies
 }

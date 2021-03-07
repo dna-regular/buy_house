@@ -6,35 +6,44 @@ import (
 	"time"
 )
 
+// Proxy proxy
 type Proxy struct {
 	url       string
 	timestamp int
 }
 
-type ProxyCtx struct {
+// Context proxy context
+type Context struct {
 	proxies []Proxy
 }
 
 var modules = []framework.Module{rawProxy}
 
-func (ctx *ProxyCtx) ResultCb(result interface{}) {
-
+// ResultCb cb
+func (ctx *Context) ResultCb(result interface{}) {
+	ctx.proxies = append(ctx.proxies, result.([]Proxy)...)
 }
 
-func (ctx *ProxyCtx) IsResultValid() bool {
+// IsResultValid check result valid
+func (ctx *Context) IsResultValid(result interface{}) bool {
 	return true
 }
 
-func (ctx *ProxyCtx) Init(config interface{}) {
-	frameworkCtx := framework.NewFramework(ctx)
-	ret := frameworkCtx.Run(modules, config)
-	proxies = append(proxies, ret.([]Proxy)...)
+// New new ctx
+func New() *Context {
+	return &Context{}
+}
+
+// Init init
+func (ctx *Context) Init(config interface{}) {
+	frameworkCtx := framework.NewFramework(ctx, &modules, config)
+	frameworkCtx.Run()
 }
 
 // ProxyWaitTime timeout
 const ProxyWaitTime = 5
 
-func (ctx *ProxyCtx) isProxyAvailable(proxy *Proxy) bool {
+func (ctx *Context) isProxyAvailable(proxy *Proxy) bool {
 	if proxy.timestamp == 0 {
 		return true
 	}
@@ -45,9 +54,11 @@ func (ctx *ProxyCtx) isProxyAvailable(proxy *Proxy) bool {
 	return true
 }
 
-var NoAvailableProxy = errors.New("EOF")
+// ErrNoAvailableProxy err
+var ErrNoAvailableProxy = errors.New("EOF")
 
-func (ctx *ProxyCtx) Get() (string, error) {
+// Get get
+func (ctx *Context) Get() (string, error) {
 	for _, proxy := range ctx.proxies {
 		if !ctx.isProxyAvailable(&proxy) {
 			continue
@@ -55,5 +66,5 @@ func (ctx *ProxyCtx) Get() (string, error) {
 		proxy.timestamp = time.Now().Second()
 		return proxy.url, nil
 	}
-	return "", NoAvailableProxy
+	return "", ErrNoAvailableProxy
 }

@@ -12,7 +12,7 @@ import (
 
 // Instance instance
 type Instance interface {
-	IsResultValid() bool
+	IsResultValid(result interface{}) bool
 	ResultCb(result interface{})
 }
 
@@ -78,7 +78,7 @@ func (framework *Framework) fetchHTML(module Module, url string, results chan Re
 	cli := &http.Client{}
 	body := []byte{}
 	req, err := http.NewRequest("GET", url, bytes.NewBuffer(body))
-	defer wg.Done()
+	//defer wg.Done()
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -95,11 +95,13 @@ func (framework *Framework) fetchHTML(module Module, url string, results chan Re
 		log.Fatalf("status code error: %d %s", resp.StatusCode, resp.Status)
 		return
 	}
+	log.Println("get html ok")
 	if result.body, err = ioutil.ReadAll(resp.Body); err != nil {
 		log.Fatalf("read body err: %v", err)
 		return
 	}
 	results <- result
+	wg.Done()
 }
 
 func (framework *Framework) handleResult(result Result) {
@@ -109,6 +111,7 @@ func (framework *Framework) handleResult(result Result) {
 	module := result.module.(Module)
 	htmlType := module.GetHtmlType()
 	var ret interface{}
+	log.Println(htmlType)
 	if htmlType == "json" {
 		ret = result.module.(JSONModule).OnGetHtml(string(result.body))
 	}
@@ -124,12 +127,13 @@ func (framework *Framework) handleResult(result Result) {
 			return
 		}
 	}
-	if module.IsValid(ret) {
-		rets = append(rets, ret)
+	if !framework.ctx.IsResultValid(ret) {
+		return
 	}
+	framework.ctx.ResultCb(ret)
 }
 
-func (framework *Framework) handleHTML(results chan Result, quit chan int) (rets []interface{}) {
+func (framework *Framework) handleHTML(results chan Result, quit chan int) {
 	for {
 		select {
 		case result := <-results:
@@ -139,35 +143,33 @@ func (framework *Framework) handleHTML(results chan Result, quit chan int) (rets
 			return
 		}
 	}
-
-	return rets
 }
 
 const maxCh = 100
 
 // Run run
-func (framework *Framework) Run(modules []Module, config interface{}) interface{} {
-	var res []interface{}
+func (framework *Framework) Run() {
 	results := make(chan Result, maxCh)
 	quit := make(chan int)
 	go framework.handleHTML(results, quit)
-	for _, module := range modules {
-		module.Init(config)
+	for _, module := range *framework.modules {
+		module.Init(framework.config)
 		for {
 			url, done, err := module.NextUrl()
 			if err != nil {
 				log.Println(err)
 				continue
 			}
+			wg.Add(1)
+			log.Println(url)
+			go framework.fetchHTML(module, url, results)
+
 			if done {
 				log.Println("fire tasks done")
 				break
 			}
-			wg.Add(1)
-			go framework.fetchHTML(module, url, results)
 		}
+		wg.Wait()
+		quit <- 0
 	}
-	wg.Wait()
-	quit <- 0
-	return res
 }
